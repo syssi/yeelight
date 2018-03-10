@@ -26,7 +26,7 @@ from homeassistant.components.light import (
     Light, PLATFORM_SCHEMA, ATTR_ENTITY_ID, DOMAIN, )
 import homeassistant.helpers.config_validation as cv
 
-REQUIREMENTS = ['yeelight==0.3.3']
+REQUIREMENTS = ['yeelight>=0.3.4']
 
 _LOGGER = logging.getLogger(__name__)
 
