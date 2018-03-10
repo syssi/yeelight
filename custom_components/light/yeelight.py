@@ -109,12 +109,6 @@ SERVICE_SCHEMA_SET_MODE = YEELIGHT_SERVICE_SCHEMA.extend({
         vol.All(vol.Coerce(int), vol.Clamp(min=0, max=5))
 })
 
-SERVICE_TO_METHOD = {
-    SERVICE_SET_MODE: {
-        'method': 'async_set_scene',
-        'schema': SERVICE_SCHEMA_SET_MODE},
-}
-
 
 # Travis-CI runs too old astroid https://github.com/PyCQA/pylint/issues/1212
 # pylint: disable=invalid-sequence-index
@@ -139,6 +133,9 @@ def _cmd(func):
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Set up the Yeelight bulbs."""
+    if DATA_KEY not in hass.data:
+        hass.data[DATA_KEY] = {}
+
     lights = []
     if discovery_info is not None:
         _LOGGER.debug("Adding autodetected %s", discovery_info['hostname'])
@@ -148,13 +145,18 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                                    discovery_info['properties']['mac'])
         device = {'name': name, 'ipaddr': discovery_info['host']}
 
-        lights.append(YeelightLight(device, DEVICE_SCHEMA({})))
+        light = YeelightLight(device, DEVICE_SCHEMA({}))
+        lights.append(light)
+        hass.data[DATA_KEY][name] = light
     else:
         for ipaddr, device_config in config[CONF_DEVICES].items():
-            _LOGGER.debug("Adding configured %s", device_config[CONF_NAME])
+            name = device_config[CONF_NAME]
+            _LOGGER.debug("Adding configured %s", name)
 
-            device = {'name': device_config[CONF_NAME], 'ipaddr': ipaddr}
-            lights.append(YeelightLight(device, device_config))
+            device = {'name': name, 'ipaddr': ipaddr}
+            light = YeelightLight(device, device_config)
+            lights.append(light)
+            hass.data[DATA_KEY][name] = light
 
     add_devices(lights, True)
 
@@ -171,10 +173,12 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
         for target_device in target_devices:
             if service.service == SERVICE_SET_MODE:
+                _LOGGER.error("seltsam")
                 target_device.set_mode(**params)
 
-        hass.services.register(
-            DOMAIN, SERVICE_SET_MODE, service_handler, schema=SERVICE_SCHEMA_SET_MODE)
+    hass.services.register(
+        DOMAIN, SERVICE_SET_MODE, service_handler,
+        schema=SERVICE_SCHEMA_SET_MODE)
 
 
 class YeelightLight(Light):
@@ -512,10 +516,10 @@ class YeelightLight(Light):
         except yeelight.BulbException as ex:
             _LOGGER.error("Unable to turn the bulb off: %s", ex)
 
-    async def set_mode(self, mode: int):
+    def set_mode(self, mode: int):
         """Set a power mode."""
-        from yeelight import enums
+        import yeelight
         try:
-            self._bulb.set_power_mode(enums.PowerMode(mode))
+            self._bulb.set_power_mode(yeelight.enums.PowerMode(mode))
         except yeelight.BulbException as ex:
             _LOGGER.error("Unable to set the power mode: %s", ex)
