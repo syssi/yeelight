@@ -23,7 +23,7 @@ from homeassistant.components.light import (
     SUPPORT_BRIGHTNESS, SUPPORT_RGB_COLOR, SUPPORT_XY_COLOR,
     SUPPORT_TRANSITION,
     SUPPORT_COLOR_TEMP, SUPPORT_FLASH, SUPPORT_EFFECT,
-    Light, PLATFORM_SCHEMA)
+    Light, PLATFORM_SCHEMA, ATTR_ENTITY_ID, DOMAIN, )
 import homeassistant.helpers.config_validation as cv
 
 REQUIREMENTS = ['yeelight==0.3.3']
@@ -36,7 +36,7 @@ DEFAULT_TRANSITION = 350
 CONF_SAVE_ON_CHANGE = 'save_on_change'
 CONF_MODE_MUSIC = 'use_music_mode'
 
-DOMAIN = 'yeelight'
+DATA_KEY = 'light.yeelight'
 
 DEVICE_SCHEMA = vol.Schema({
     vol.Optional(CONF_NAME): cv.string,
@@ -97,6 +97,24 @@ YEELIGHT_EFFECT_LIST = [
     EFFECT_TWITTER,
     EFFECT_STOP]
 
+SERVICE_SET_MODE = 'yeelight_set_mode'
+ATTR_MODE = 'mode'
+
+YEELIGHT_SERVICE_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+})
+
+SERVICE_SCHEMA_SET_MODE = YEELIGHT_SERVICE_SCHEMA.extend({
+    vol.Required(ATTR_MODE):
+        vol.All(vol.Coerce(int), vol.Clamp(min=0, max=5))
+})
+
+SERVICE_TO_METHOD = {
+    SERVICE_SET_MODE: {
+        'method': 'async_set_scene',
+        'schema': SERVICE_SCHEMA_SET_MODE},
+}
+
 
 # Travis-CI runs too old astroid https://github.com/PyCQA/pylint/issues/1212
 # pylint: disable=invalid-sequence-index
@@ -139,6 +157,24 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             lights.append(YeelightLight(device, device_config))
 
     add_devices(lights, True)
+
+    def service_handler(service):
+        """Dispatch service calls to target entities."""
+        params = {key: value for key, value in service.data.items()
+                  if key != ATTR_ENTITY_ID}
+        entity_ids = service.data.get(ATTR_ENTITY_ID)
+        if entity_ids:
+            target_devices = [dev for dev in hass.data[DATA_KEY].values()
+                              if dev.entity_id in entity_ids]
+        else:
+            target_devices = hass.data[DATA_KEY].values()
+
+        for target_device in target_devices:
+            if service.service == SERVICE_SET_MODE:
+                target_device.set_mode(**params)
+
+        hass.services.register(
+            DOMAIN, SERVICE_SET_MODE, service_handler, schema=SERVICE_SCHEMA_SET_MODE)
 
 
 class YeelightLight(Light):
@@ -475,3 +511,11 @@ class YeelightLight(Light):
             self._bulb.turn_off(duration=duration)
         except yeelight.BulbException as ex:
             _LOGGER.error("Unable to turn the bulb off: %s", ex)
+
+    async def set_mode(self, mode: int):
+        """Set a power mode."""
+        from yeelight import enums
+        try:
+            self._bulb.set_power_mode(enums.PowerMode(mode))
+        except yeelight.BulbException as ex:
+            _LOGGER.error("Unable to set the power mode: %s", ex)
