@@ -454,19 +454,9 @@ class YeelightLight(Light):
             except BulbException as ex:
                 _LOGGER.error("Unable to set effect: %s", ex)
 
-    def set_mode(self, mode: int):
-        """Set a power mode."""
-        if mode:
-            import yeelight
-            try:
-                self._bulb.set_power_mode(yeelight.enums.PowerMode(mode))
-            except yeelight.BulbException as ex:
-                _LOGGER.error("Unable to set the power mode: %s", ex)
-
     def turn_on(self, **kwargs) -> None:
         """Turn the bulb on."""
         import yeelight
-        mode = kwargs.get(ATTR_MODE)
         brightness = kwargs.get(ATTR_BRIGHTNESS)
         colortemp = kwargs.get(ATTR_COLOR_TEMP)
         rgb = kwargs.get(ATTR_RGB_COLOR)
@@ -496,7 +486,6 @@ class YeelightLight(Light):
 
         try:
             # values checked for none in methods
-            self.set_mode(mode)
             self.set_rgb(rgb, duration)
             self.set_colortemp(colortemp, duration)
             self.set_brightness(brightness, duration)
@@ -526,3 +515,11 @@ class YeelightLight(Light):
             self._bulb.turn_off(duration=duration)
         except yeelight.BulbException as ex:
             _LOGGER.error("Unable to turn the bulb off: %s", ex)
+
+    def set_mode(self, mode: int):
+        """Set a power mode."""
+        import yeelight
+        try:
+            self._bulb.set_power_mode(yeelight.enums.PowerMode(mode))
+        except yeelight.BulbException as ex:
+            _LOGGER.error("Unable to set the power mode: %s", ex)
