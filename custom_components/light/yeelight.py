@@ -105,8 +105,7 @@ YEELIGHT_SERVICE_SCHEMA = vol.Schema({
 })
 
 SERVICE_SCHEMA_SET_MODE = YEELIGHT_SERVICE_SCHEMA.extend({
-    vol.Required(ATTR_MODE):
-        vol.All(vol.Coerce(int), vol.Clamp(min=0, max=5))
+    vol.Required(ATTR_MODE): cv.string
 })
 
 
@@ -516,10 +515,10 @@ class YeelightLight(Light):
         except yeelight.BulbException as ex:
             _LOGGER.error("Unable to turn the bulb off: %s", ex)
 
-    def set_mode(self, mode: int):
+    def set_mode(self, mode: str):
         """Set a power mode."""
         import yeelight
         try:
-            self._bulb.set_power_mode(yeelight.enums.PowerMode(mode))
+            self._bulb.set_power_mode(yeelight.enums.PowerMode[mode.upper()])
         except yeelight.BulbException as ex:
             _LOGGER.error("Unable to set the power mode: %s", ex)
