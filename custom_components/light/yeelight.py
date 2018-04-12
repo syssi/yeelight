@@ -206,6 +206,8 @@ class YeelightLight(Light):
         self._hs = None
 
         self._model = config['model']
+        self._min_mireds = None
+        self._max_mireds = None
         if self._model is not None and self._model in YEELIGHT_SPECS:
             self._min_mireds = YEELIGHT_SPECS[self._model]['max_kelvin']
             self._max_mireds = YEELIGHT_SPECS[self._model]['min_kelvin']
