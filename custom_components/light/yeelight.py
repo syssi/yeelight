@@ -209,8 +209,10 @@ class YeelightLight(Light):
         self._min_mireds = None
         self._max_mireds = None
         if self._model is not None and self._model in YEELIGHT_SPECS:
-            self._min_mireds = YEELIGHT_SPECS[self._model]['max_kelvin']
-            self._max_mireds = YEELIGHT_SPECS[self._model]['min_kelvin']
+            self._min_mireds = kelvin_to_mired(
+                YEELIGHT_SPECS[self._model]['max_kelvin'])
+            self._max_mireds = kelvin_to_mired(
+                YEELIGHT_SPECS[self._model]['min_kelvin'])
 
     @property
     def available(self) -> bool:
