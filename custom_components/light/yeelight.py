@@ -63,9 +63,9 @@ SUPPORT_YEELIGHT_RGB = (SUPPORT_YEELIGHT |
                         SUPPORT_COLOR_TEMP)
 
 YEELIGHT_SPECS = {
-    'white': {'min_kelvin': 2700, 'max_kelvin': 2700},
-    'rgb': {'min_kelvin': 1700, 'max_kelvin': 6500},
-    'strip': {'min_kelvin': 1700, 'max_kelvin': 6500},
+    'mono1': {'min_kelvin': 2700, 'max_kelvin': 2700},
+    'color1': {'min_kelvin': 1700, 'max_kelvin': 6500},
+    'strip1': {'min_kelvin': 1700, 'max_kelvin': 6500},
     'bslamp1': {'min_kelvin': 1700, 'max_kelvin': 6500},
     'ceiling1': {'min_kelvin': 2700, 'max_kelvin': 6500},
     'ceiling2': {'min_kelvin': 2700, 'max_kelvin': 6500},
@@ -141,10 +141,11 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         _LOGGER.debug("Adding autodetected %s", discovery_info['hostname'])
 
         device_type = discovery_info['device_type']
-        device_type = LEGACY_DEVICE_TYPE_MAP.get(device_type, device_type)
+        legacy_device_type = LEGACY_DEVICE_TYPE_MAP.get(device_type,
+                                                        device_type)
 
         # Not using hostname, as it seems to vary.
-        name = "yeelight_%s_%s" % (device_type,
+        name = "yeelight_%s_%s" % (legacy_device_type,
                                    discovery_info['properties']['mac'])
         device = {'name': name, 'ipaddr': discovery_info['host']}
 
