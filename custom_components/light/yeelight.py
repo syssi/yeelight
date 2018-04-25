@@ -257,8 +257,8 @@ class YeelightLight(Light):
             return self._min_mireds
 
         if self.supported_features & SUPPORT_COLOR_TEMP:
-            return kelvin_to_mired(YEELIGHT_SPECS['rgb']['max_kelvin'])
-        return kelvin_to_mired(YEELIGHT_SPECS['white']['max_kelvin'])
+            return kelvin_to_mired(YEELIGHT_SPECS['color1']['max_kelvin'])
+        return kelvin_to_mired(YEELIGHT_SPECS['mono1']['max_kelvin'])
 
     @property
     def max_mireds(self):
@@ -267,8 +267,8 @@ class YeelightLight(Light):
             return self._max_mireds
 
         if self.supported_features & SUPPORT_COLOR_TEMP:
-            return kelvin_to_mired(YEELIGHT_SPECS['rgb']['min_kelvin'])
-        return kelvin_to_mired(YEELIGHT_SPECS['white']['min_kelvin'])
+            return kelvin_to_mired(YEELIGHT_SPECS['color1']['min_kelvin'])
+        return kelvin_to_mired(YEELIGHT_SPECS['mono1']['min_kelvin'])
 
     def _get_hs_from_properties(self):
         rgb = self._properties.get('rgb', None)
