@@ -529,5 +529,6 @@ class YeelightLight(Light):
         import yeelight
         try:
             self._bulb.set_power_mode(yeelight.enums.PowerMode[mode.upper()])
+            self.async_schedule_update_ha_state(True)
         except yeelight.BulbException as ex:
             _LOGGER.error("Unable to set the power mode: %s", ex)
