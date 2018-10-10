@@ -20,7 +20,7 @@ from homeassistant.components.light import (
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.color as color_util
 
-REQUIREMENTS = ['yeelight>=0.4.0']
+REQUIREMENTS = ['yeelight==0.4.1']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,21 +32,21 @@ LEGACY_DEVICE_TYPE_MAP = {
     'ceiling1': 'ceiling',
 }
 
-CONF_MODEL = 'model'
-
-CONF_TRANSITION = 'transition'
+DEFAULT_NAME = 'Yeelight'
 DEFAULT_TRANSITION = 350
 
+CONF_MODEL = 'model'
+CONF_TRANSITION = 'transition'
 CONF_SAVE_ON_CHANGE = 'save_on_change'
 CONF_MODE_MUSIC = 'use_music_mode'
 
 DATA_KEY = 'light.yeelight'
 
 DEVICE_SCHEMA = vol.Schema({
-    vol.Optional(CONF_NAME): cv.string,
+    vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
     vol.Optional(CONF_TRANSITION, default=DEFAULT_TRANSITION): cv.positive_int,
     vol.Optional(CONF_MODE_MUSIC, default=False): cv.boolean,
-    vol.Optional(CONF_SAVE_ON_CHANGE, default=True): cv.boolean,
+    vol.Optional(CONF_SAVE_ON_CHANGE, default=False): cv.boolean,
     vol.Optional(CONF_MODEL): cv.string,
 })
 
@@ -62,16 +62,9 @@ SUPPORT_YEELIGHT_RGB = (SUPPORT_YEELIGHT |
                         SUPPORT_EFFECT |
                         SUPPORT_COLOR_TEMP)
 
-YEELIGHT_SPECS = {
-    'mono1': {'min_kelvin': 2700, 'max_kelvin': 2700},
-    'color1': {'min_kelvin': 1700, 'max_kelvin': 6500},
-    'strip1': {'min_kelvin': 1700, 'max_kelvin': 6500},
-    'bslamp1': {'min_kelvin': 1700, 'max_kelvin': 6500},
-    'ceiling1': {'min_kelvin': 2700, 'max_kelvin': 6500},
-    'ceiling2': {'min_kelvin': 2700, 'max_kelvin': 6500},
-    'ceiling3': {'min_kelvin': 2700, 'max_kelvin': 6000},
-    'ceiling4': {'min_kelvin': 2700, 'max_kelvin': 6500},
-}
+YEELIGHT_MIN_KELVIN = YEELIGHT_MAX_KELVIN = 2700
+YEELIGHT_RGB_MIN_KELVIN = 1700
+YEELIGHT_RGB_MAX_KELVIN = 6500
 
 EFFECT_DISCO = "Disco"
 EFFECT_TEMP = "Slow Temp"
@@ -129,7 +122,7 @@ def _cmd(func):
     return _wrap
 
 
-def setup_platform(hass, config, add_devices, discovery_info=None):
+def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up the Yeelight bulbs."""
     from yeelight.enums import PowerMode
 
@@ -162,7 +155,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             lights.append(light)
             hass.data[DATA_KEY][name] = light
 
-    add_devices(lights, True)
+    add_entities(lights, True)
 
     def service_handler(service):
         """Dispatch service calls to target entities."""
@@ -209,11 +202,6 @@ class YeelightLight(Light):
         self._model = config['model']
         self._min_mireds = None
         self._max_mireds = None
-        if self._model is not None and self._model in YEELIGHT_SPECS:
-            self._min_mireds = kelvin_to_mired(
-                YEELIGHT_SPECS[self._model]['max_kelvin'])
-            self._max_mireds = kelvin_to_mired(
-                YEELIGHT_SPECS[self._model]['min_kelvin'])
 
     @property
     def available(self) -> bool:
@@ -296,7 +284,7 @@ class YeelightLight(Light):
         import yeelight
         if self._bulb_device is None:
             try:
-                self._bulb_device = yeelight.Bulb(self._ipaddr)
+                self._bulb_device = yeelight.Bulb(self._ipaddr, model=self._model)
                 self._bulb_device.get_properties()  # force init for type
 
                 self._available = True
@@ -324,22 +312,15 @@ class YeelightLight(Light):
                 self._supported_features = SUPPORT_YEELIGHT_RGB
 
             if self._min_mireds is None:
-                if self.supported_features & SUPPORT_COLOR_TEMP:
-                    self._min_mireds = kelvin_to_mired(
-                        YEELIGHT_SPECS['color1']['max_kelvin'])
-                    self._max_mireds = kelvin_to_mired(
-                        YEELIGHT_SPECS['color1']['min_kelvin'])
-                else:
-                    self._min_mireds = kelvin_to_mired(
-                        YEELIGHT_SPECS['mono1']['max_kelvin'])
-                    self._max_mireds = kelvin_to_mired(
-                        YEELIGHT_SPECS['mono1']['min_kelvin'])
+                model_specs = self._bulb.get_model_specs()
+                self._min_mireds = kelvin_to_mired(model_specs['color_temp']['max'])
+                self._max_mireds = kelvin_to_mired(model_specs['color_temp']['min'])
 
             self._is_on = self._properties.get('power') == 'on'
 
             bright = self._properties.get('bright', None)
             if bright:
-                self._brightness = 255 * (int(bright) / 100)
+                self._brightness = round(255 * (int(bright) / 100))
 
             temp_in_k = self._properties.get('ct', None)
             if temp_in_k:
