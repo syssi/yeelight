@@ -63,8 +63,6 @@ SUPPORT_YEELIGHT_RGB = (SUPPORT_YEELIGHT |
                         SUPPORT_COLOR_TEMP)
 
 YEELIGHT_MIN_KELVIN = YEELIGHT_MAX_KELVIN = 2700
-YEELIGHT_RGB_MIN_KELVIN = 1700
-YEELIGHT_RGB_MAX_KELVIN = 6500
 
 EFFECT_DISCO = "Disco"
 EFFECT_TEMP = "Slow Temp"
@@ -199,7 +197,7 @@ class YeelightLight(Light):
         self._is_on = None
         self._hs = None
 
-        self._model = config['model']
+        self._model = config.get('model')
         self._min_mireds = None
         self._max_mireds = None
 
